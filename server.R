@@ -79,9 +79,9 @@ shinyServer(function(input, output, session) {
     lines <- list()
     for (i in c(0, 3, 5, 7, 9, 13)) {
       line[["x0"]] <- 0
-      line[["x1"]] <- input$Initial.ES
+      line[["x1"]] <- 500
       line[["y0"]] <- 0
-      line[["y1"]] <- input$Final.ES
+      line[["y1"]] <- 500
       lines <- c(lines, list(line))
     }
     
@@ -93,7 +93,7 @@ shinyServer(function(input, output, session) {
             size = ~ER,
             color = ~ER,
             key = ~key) %>%
-      layout(dragmode = "select")
+      layout(dragmode = "select", shapes=lines)
   })
   ##### END 2D Plotly for CELL_LINE_1 #####
    
