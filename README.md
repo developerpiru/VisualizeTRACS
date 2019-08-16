@@ -39,3 +39,5 @@ Then load the required libraries:
 Then run the latest version of VisualizeTRACS using:
 
 	runGitHub( "VisualizeTRACS", "developerpiru")
+
+If you are using R, a browser window should open automatically showing the app. If you are using RStudio, click "Open in browser" in the window that opens.
