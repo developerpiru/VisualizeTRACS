@@ -15,10 +15,15 @@ VisualizeTRACS is an R-based tool that allows you to manipulate and visualize da
 In R run these commands to install dependencies:
 
 ```install.packages("shiny"```
+
 ```install.packages("shinydashboard"```
+
 ```install.packages("scatterD3"```
+
 ```install.packages("plotly"```
+
 ```install.packages("DT"```
+
 
 Then load the shiny library:
 
