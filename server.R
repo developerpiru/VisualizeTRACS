@@ -75,6 +75,16 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2]) 
     
+    #create a list that contains data to draw a straight line (y = x)
+    lines <- list()
+    for (i in c(0, 3, 5, 7, 9, 13)) {
+      line[["x0"]] <- 0
+      line[["x1"]] <- input$Initial.ES
+      line[["y0"]] <- 0
+      line[["y1"]] <- input$Final.ES
+      lines <- c(lines, list(line))
+    }
+    
     # use the key aesthetic/argument to help uniquely identify selected observations
     key <- CELL_LINE_1_filteredgenes$Gene
     plot_ly(CELL_LINE_1_filteredgenes, 
@@ -83,7 +93,7 @@ shinyServer(function(input, output, session) {
             size = ~ER,
             color = ~ER,
             key = ~key) %>%
-      layout(dragmode = "select")
+      layout(dragmode = "select", shapes=lines)
   })
   ##### END 2D Plotly for CELL_LINE_1 #####
    
@@ -241,7 +251,7 @@ shinyServer(function(input, output, session) {
     updateSliderInput(session, "Final.ES", label = NULL, value = "20000")
     updateSliderInput(session, "Initial.ES", label = NULL, value = "0")
     updateSliderInput(session, "Library.ES", label = NULL, value = "0")
-    updateSliderInput(session, "ER.range", label = NULL, value = c(-20,20))
+    updateSliderInput(session, "ER.range", label = NULL, value = c(-30,30))
 
   })
   

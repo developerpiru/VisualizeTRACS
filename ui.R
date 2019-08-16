@@ -11,30 +11,30 @@ ui <- dashboardPage(
     
       #spheroid axis slider: x axis
       sliderInput("Final.ES", 
-                  "Max Final Gene Enrichment Score", 
+                  "Max Final Gene Enrichment Score (Final.ES)", 
                   min = 0,
                   max = 20000, 
                   value = 15000),
       
       #adherent axis slider: y axis
       sliderInput("Initial.ES", 
-                  "Min Initial Gene Enrichment Score", 
+                  "Min Initial Gene Enrichment Score (Initial.ES)", 
                   min = 0,
                   max = 20000, 
                   value = 1),
       
       #library axis slider: z axis
       sliderInput("Library.ES", 
-                  "Min Library Enrichment Score", 
+                  "Min Library Enrichment Score (Library.ES)", 
                   min = 0,
                   max = 20000, 
                   value = 200),
       
-      #library axis slider: z axis
+      #range for Enrichment Ratio ER)
       sliderInput("ER.range", 
-                  "Enrichment Ratio (Log2[Final.ES/Initial.ES]) Range", 
-                  min = -20,
-                  max = 20, 
+                  "Range for Enrichment Ratio (ER = Log2[Final.ES/Initial.ES])", 
+                  min = -30,
+                  max = 30, 
                   value = c(-20,20))
       
     
