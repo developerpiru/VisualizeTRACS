@@ -13,7 +13,7 @@ You must have the following components installed in order to run VisualizeTRACS:
 - library(DT)
 
 # Installation
-At the R command prompt or in RStudio, run these commands to install dependencies:
+1. At the R command prompt or in RStudio, run these commands to install the dependencies (listed above) if you don't already have them installed:
 
 	install.packages("shiny")
 
@@ -26,10 +26,10 @@ At the R command prompt or in RStudio, run these commands to install dependencie
 	install.packages("DT")
 
 
-Then load the shiny library:
+2. Then load the shiny library:
 
 	library(shiny)
 
-Then run the latest version of VisualizeTRACS using:
+3. Then run the latest version of VisualizeTRACS using:
 
 	runGitHub( "VisualizeTRACS", "developerpiru")
