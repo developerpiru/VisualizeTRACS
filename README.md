@@ -26,9 +26,13 @@ At the R command prompt or in RStudio, run these commands to install the depende
 	install.packages("DT")
 
 
-Then load the shiny library:
+Then load the required libraries:
 
 	library(shiny)
+	library(shinydashboard)
+	library(scatterD3)
+	library(plotly)
+	library(DT)
 
 Then run the latest version of VisualizeTRACS using:
 
