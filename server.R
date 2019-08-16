@@ -76,12 +76,20 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2]) 
     
     #create a list that contains data to draw a straight line (y = x)
+    #for drawing sraight line
+    line <- list(
+      type = "line",
+      line = list(color = "black"),
+      xref = "x",
+      yref = "y"
+    )
+    
     lines <- list()
     for (i in c(0, 3, 5, 7, 9, 13)) {
       line[["x0"]] <- 0
-      line[["x1"]] <- 500
+      line[["x1"]] <- input$Initial.ES
       line[["y0"]] <- 0
-      line[["y1"]] <- 500
+      line[["y1"]] <- input$Final.ES
       lines <- c(lines, list(line))
     }
     
