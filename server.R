@@ -93,7 +93,7 @@ shinyServer(function(input, output, session) {
             size = ~ER,
             color = ~ER,
             key = ~key) %>%
-      layout(dragmode = "select", shapes=lines)
+      layout(dragmode = "select")
   })
   ##### END 2D Plotly for CELL_LINE_1 #####
    
