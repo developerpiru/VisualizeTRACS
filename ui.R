@@ -1,7 +1,7 @@
 #runApp("shinyappv2", host = "0.0.0.0", port = 80)
 
 ui <- dashboardPage(
-  dashboardHeader(title = "CRISPR Screen Data"),
+  dashboardHeader(title = "VisualizeTRACS v3.0"),
   
   dashboardSidebar(
     
