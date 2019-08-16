@@ -8,7 +8,6 @@ library(shinydashboard)
 library(scatterD3)
 library(plotly)
 library(DT)
-library(dplyr)
 #library(shinyRGL)
 #library(shinyWidgets)
 
