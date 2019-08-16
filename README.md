@@ -5,8 +5,9 @@ VisualizeTRACS is an R-based tool that allows you to manipulate and visualize da
 
 # Requirements
 You must have the following components installed in order to run VisualizeTRACS:
-	+ R 3.5+
-	+ library(shiny)
+	1. R 3.5+
+	
+	2. library(shiny)
 	+ library(shinydashboard)
 	+ library(scatterD3)
 	+ library(plotly)
