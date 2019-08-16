@@ -12,7 +12,7 @@ VisualizeTRACS is an R-based tool that allows you to manipulate and visualize da
 +library(DT)
 
 # Installation
-In R run these commands to install dependencies:
+At the R command prompt or in RStudio, run these commands to install dependencies:
 
 	install.packages("shiny")
 
