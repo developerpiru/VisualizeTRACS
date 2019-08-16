@@ -13,6 +13,8 @@ You must have the following components installed in order to run VisualizeTRACS:
 - library(DT)
 
 # Installation
+Download install the latest version of R if you don't have it already from the CRAN project page: https://cran.r-project.org/.
+
 At the R command prompt or in RStudio, run these commands to install the dependencies (listed above) if you don't already have them installed:
 
 	install.packages("shiny")
