@@ -28,7 +28,7 @@ At the R command prompt or in RStudio, run these commands to install the depende
 	install.packages("DT")
 
 # Run VisualizeTRACS
-Then load the required libraries:
+Load the required libraries:
 
 	library(shiny)
 	library(shinydashboard)
