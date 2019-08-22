@@ -1,103 +1,96 @@
-# GUI to analyze RNAseq data using DESeq2
-# input: transcript read counts (ie. from STAR aligner or HTseq), and column data matrix file containing sample info
-# version: 0.61
-
-# added:
-# +1 to all reads; avoid 0 read count errors
-# multiple comparisons
-# show >2 conditions on PCA plot
-# adjusdt results based on different conditions
-# labels for read count plot
-
-# bugs"
-# PCA, gene count, volcano plots don't auto-update to new dds after changing treatment condition factor level
+#runApp("shinyappv2", host = "0.0.0.0", port = 80)
 
 ui <- dashboardPage(
-  dashboardHeader(title = "VisualRNAseq v0.61"),
+  dashboardHeader(title = "VisualizeTRACS v3.0"),
   
   dashboardSidebar(
     
+      #buttons
+      actionButton("btnshowall", "Show all genes"),
+      actionButton("btndefault", "Default values"),
+    
+      #spheroid axis slider: x axis
+      sliderInput("Final.ES", 
+                  "Max Final Gene Enrichment Score (Final.ES)", 
+                  min = 0,
+                  max = 20000, 
+                  value = 15000),
+      
+      #adherent axis slider: y axis
+      sliderInput("Initial.ES", 
+                  "Min Initial Gene Enrichment Score (Initial.ES)", 
+                  min = 0,
+                  max = 20000, 
+                  value = 1),
+      
+      #library axis slider: z axis
+      sliderInput("Library.ES", 
+                  "Min Library Enrichment Score (Library.ES)", 
+                  min = 0,
+                  max = 20000, 
+                  value = 200),
+      
+      #range for Enrichment Ratio ER)
+      sliderInput("ER.range", 
+                  "Range for Enrichment Ratio (ER = Log2[Final.ES/Initial.ES])", 
+                  min = -30,
+                  max = 30, 
+                  value = c(-20,20))
+      
     
   ), #end dashboard Sidebar
   
   dashboardBody(
     
-    tabsetPanel(
-      
-      tabPanel("Load data", fluidRow(
+      tags$head(tags$style(HTML('
+        .main-header .logo {
+              font-family: "Arial";
+              font-weight: bold;
+              font-size:20px;
+        }
+  
+        .content-wrapper {
+              background-color: #FFFFFF !important;
+        }
+      '))), 
+    
+    
+      tabsetPanel(
         
-        #Load read counts file
-        fileInput("rawreadsfile", "Select file with read counts",
-                  multiple = FALSE,
-                  accept = c("text/csv",
-                             "text/comma-separated-values,text/plain",
-                             ".csv")),
-
-        checkboxInput("header1", "Header", TRUE),
-        radioButtons("sep1", "Separator",
-                     choices = c(Comma = ",",
-                                 Semicolon = ";",
-                                 Tab = "\t"),
-                     selected = ","),
+        tabPanel("Load data", fluidRow(
+          
+          #Load TRACS analysis file
+          fileInput("TRACSfile1", "Select TRACS analysis file",
+                    multiple = FALSE,
+                    accept = c("text/plain",
+                               "text/comma-separated-values,text/plain",
+                               ".csv"))
+                )),
         
-        #Load coldata
-        fileInput("coldatafile", "Select file with sample treatment/condition/ info",
-                  multiple = FALSE,
-                  accept = c("text/csv",
-                             "text/comma-separated-values,text/plain",
-                             ".csv")),
-
-        checkboxInput("header2", "Header", TRUE),
-        radioButtons("sep2", "Separator",
-                     choices = c(Comma = ",",
-                                 Semicolon = ";",
-                                 Tab = "\t"),
-                     selected = ","),
+        # full 3D plot tab
+        tabPanel("3D Plot", fluidRow(
+          HTML("<h3><p align='center'>Plot of all genes</p></h3>"),
+          column(12, plotlyOutput("full3Dplot_CELL_LINE_1", height = "500", width = "100%"))
+                 )),
+   
+        # Plotly graph with polygon select
+        tabPanel("Scatter plot", plotlyOutput("filteredPlotly_CELL_LINE_1", height = "800", width="100%"),
+                 #verbatimTextOutput("plotly_select")
+                 downloadButton("downloadSelectedData", "Download Table"),
+                 DT::dataTableOutput("plotly_select")
+        ),
         
-        #Input for conditions
-        #selectInput("condslist", "Dataset", c("Complete step 1"))
-        uiOutput("cityControls")
-        
-      )),
-      
-      tabPanel("Select experiment settings", 
-               uiOutput("control_condslist"),
-               uiOutput("treatment1_condslist"),
-               uiOutput("FDR_value"),
-               uiOutput("min_reads")
-      ),
-      
-      tabPanel("Output - Differentially expressed gene table", fluidRow(
-        downloadButton("downloadDEGeneTable", "Download Table"),
-        DT::dataTableOutput("calc_res_values")
-        
-      )),
-      
-      tabPanel("PCA Plot", fluidRow(
-        plotOutput("PCA_plot", height = "500", width="500")
-        
-      )),
-      
-      tabPanel("Gene counts", fluidRow(
-        textInput("gene_name", "Enter Gene name", value = "KRAS"),
-        plotOutput("genecount_plot", height = "500", width="500")
-        
-      )),
-      
-      tabPanel("Volcano Plot", fluidRow(
-        sliderInput("FCcutoff", 
-                    "Log2 fold change cutoff", 
-                    min = 0,
-                    max = 10, 
-                    value = c(2)),
-        textInput("padjcutoff", "Adjusted p value cutoff", value = "0.05", width = NULL,
-                  placeholder = NULL),
-        plotlyOutput("volcanoPlot", height = "800", width="100%")
-      ))
-    )
+        # Filtered table tab for CELL_LINE_1
+        tabPanel("Data Table", 
+                 HTML("<p align='center'>Download filtered table"),
+                 downloadButton("downloadData_CELL_LINE_1", "Download Table"),
+                 HTML("</p>"),
+                 DT::dataTableOutput("filteredtable_CELL_LINE_1")
+                  )
+      )
     
   ), #end dashboardBody
   
-  skin = "black"
+  skin = "blue"
   
 ) #end dashboardPage

@@ -1,425 +1,276 @@
-# GUI to analyze RNAseq data using DESeq2
-# input: transcript read counts (ie. from STAR aligner or HTseq), and column data matrix file containing sample info
-# version: 0.61
+#runApp("shinyapp", host = "0.0.0.0", port = 80)
 
-# added:
-# +1 to all reads; avoid 0 read count errors
-# multiple comparisons
-# show >2 conditions on PCA plot
-# adjusdt results based on different conditions
-# labels for read count plot
-
-# bugs"
-# PCA, gene count, volcano plots don't auto-update to new dds after changing treatment condition factor level
+# web app to visualize one cell line at a time #
+# place holders to visualize two cell lines at a time #
 
 library(shiny)
 library(shinydashboard)
-library(plotly)
 library(scatterD3)
-library(ggplot2)
-library(data.table)
+library(plotly)
 library(DT)
-library("DESeq2")
-library("vsn")
-library('apeglm')
-library('org.Hs.eg.db')
+#library(shinyRGL)
+#library(shinyWidgets)
 
-#increase max file size to 50MB
-options(shiny.maxRequestSize = 50*1024^2)
-
+# Define server logic required to generate and plot a random distribution
 shinyServer(function(input, output, session) {
   
   #reactive to get and store raw reads data
-  #upload read count file
-  cts <- reactive({
+  getdata <- reactive({
+    req(input$TRACSfile1)
     
-    req(input$rawreadsfile)
-    
-    #store in rawreadsdata variable
-    rawreadsdata <- read.csv(input$rawreadsfile$datapath,
-                    header = input$header1,
-                    sep = input$sep1)
-    
-    rownames(rawreadsdata) <- rawreadsdata$gene_id
-    rawreadsdata <- rawreadsdata[,-1]
-    
-    #increment all reads by 1 to avoid 0 read count errors
-    rawreadsdata <- rawreadsdata + 1
-    
-    return(rawreadsdata)
+    CELL_LINE_1_genedatapoints <<- read.table(input$TRACSfile1$datapath, sep="\t", header=TRUE)
+
+    return(CELL_LINE_1_genedatapoints)
     
   })
-  
-  #reactive to get and store coldata table
-  #upload column data file
-  coldata <- reactive({
+ 
+  output$htmltitle = renderPlotly({
     
-    req(input$coldatafile)
-    
-    #store in coldata variable
-    coldata <- read.csv(input$coldatafile$datapath,
-                        header = input$header2,
-                        sep = input$sep2)
-    
-    return(coldata)
+    CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
     
   })
-  
-  output$control_condslist <- renderUI({
-    temp_coldata <- coldata()
-    temp_condslist <- unique(temp_coldata[,2])
+
+  ##### START 3D Plot for CELL_LINE_1 #####
+  #show all data in 3D plot for CELL_LINE_1
+  #change selected\filtered gene point colour to red
+  output$full3Dplot_CELL_LINE_1 = renderPlotly({
     
-    selectInput("control_condslist", "Choose control condition", temp_condslist)
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
+    
+    CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
+    
+    CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
+                             [Initial.ES >= input$Initial.ES & 
+                               Library.ES >= input$Library.ES &
+                               Final.ES <= input$Final.ES] <- 'Filtered')
+    
+    
+    CELL_LINE_1_genedatapoints$filteredstat <- as.factor(CELL_LINE_1_genedatapoints$filteredstat)
+    
+    p <- plot_ly(CELL_LINE_1_genedatapoints, x = ~Final.ES, y = ~Initial.ES, z = ~Library.ES,
+                 marker = list(symbol = 'circle', size = 1),
+                 color = ~filteredstat, 
+                 colors = c('#BF382A', '#0C4B8E')) %>%
+      
+      add_markers() %>%
+      
+      layout(title = "", 
+             scene = list(xaxis = list(title = 'Final Score'),
+                          yaxis = list(title = 'Initial Score'),
+                          zaxis = list(title = 'Library Score')),
+             showlegend = FALSE)
+    
+  }) ##### END 3D Plot for CELL_LINE_1 #####
+  
+  ##### START 2D Plotly for CELL_LINE_1 #####
+  output$filteredPlotly_CELL_LINE_1 <- renderPlotly({
+    
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
+    
+    #filter gene list for CELL_LINE_1
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2]) 
+    
+    #create a list that contains data to draw a straight line (y = x)
+    #for drawing sraight line
+    line <- list(
+      type = "line",
+      line = list(color = "black"),
+      xref = "x",
+      yref = "y"
+    )
+    
+    lines <- list()
+    for (i in c(0, 3, 5, 7, 9, 13)) {
+      line[["x0"]] <- 0
+      line[["x1"]] <- max(CELL_LINE_1_filteredgenes$Initial.ES)
+      line[["y0"]] <- 0
+      line[["y1"]] <- max(CELL_LINE_1_filteredgenes$Final.ES)
+      lines <- c(lines, list(line))
+    }
+    
+    # use the key aesthetic/argument to help uniquely identify selected observations
+    key <- CELL_LINE_1_filteredgenes$Gene
+    plot_ly(CELL_LINE_1_filteredgenes, 
+            x = ~Initial.ES, 
+            y = ~Final.ES,
+            size = ~ER,
+            color = ~ER,
+            key = ~key) %>%
+      layout(dragmode = "select", shapes=lines)
   })
+  ##### END 2D Plotly for CELL_LINE_1 #####
+   
+  ##### START PLOTLY SELECT FUNCTION #####
+  output$plotly_select <- DT::renderDataTable({
+    
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
+    
+    #filter gene list for CELL_LINE_1
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
+    
+    #set rownames of CELL_LINE_1_filteredgenes
+    rownames(CELL_LINE_1_filteredgenes) <- CELL_LINE_1_filteredgenes$Gene
+    
+    #get the selected points from plotly graph
+    temp_df <<- as.data.frame(event_data("plotly_selected"))
+    #if (is.null(display_list)) "Nothing selected yet" else display_list
+    
+    #set rownames of temp_df to the key values, which contain the gene names we want
+    rownames(temp_df) <- temp_df$key
+    #drop all columns except the last two; need to keep at least 2 columns for merge function
+    temp_df <- temp_df[,c(-1,-2,-3)]
+    
+    #rename columns; last column is the Gene name we want to use to match up data with CELL_LINE_1_filteredgenes dataframe
+    colnames(temp_df) <- c("0", "Gene")
+    
+    #use merge function to pullout values of selected genes
+    display_table <- merge(CELL_LINE_1_filteredgenes, temp_df, by="Gene", all.x=F)
+    
+    #now drop the "0" column
+    display_table <- display_table[,-7]
+    
+    #if (is.null(temp_df)){
+    #  m <- data.frame(matrix(0, ncol = 2, nrow = 1))
+    #  m[1,1] <- "Nothing selected yet"
+    #  display_table <- m
+    #}
+    
+    #make gene names a URL to genecards
+    display_table$Gene <-  paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", display_table$Gene, "' target='_blank'>", display_table$Gene, "</a>")
+    
+    
+    #display table
+    DT::datatable(display_table, 
+                  options = list(order = list(list(6, 'asc')), 
+                                 aLengthMenu = c(10,25, 50, 100, 1000), 
+                                 iDisplayLength = 25), escape = FALSE)
+   
+  }) ##### END PLOTLY SELECT FUNCTION #####
   
-  output$treatment1_condslist <- renderUI({
-    temp_coldata <- coldata()
-    temp_condslist <- unique(temp_coldata[,2])
+  ##### START TABLE FOR CELL_LINE_1 #####
+  #data table to show filtered genes from CELL_LINE_1
+  output$filteredtable_CELL_LINE_1 <- DT::renderDataTable({
     
-    selectInput("treatment1_condslist", "Choose treatment condition", temp_condslist)
-  })
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
+    
+    #filter gene list for CELL_LINE_1
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
+    
+    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
+
+    #make gene names a URL to genecards
+    CELL_LINE_1_filteredgenes$Gene <-  paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", CELL_LINE_1_filteredgenes$Gene, "' target='_blank'>", CELL_LINE_1_filteredgenes$Gene, "</a>")
+    
+    #save to new table
+    display_list <- CELL_LINE_1_filteredgenes
+
+    DT::datatable(display_list, 
+                  options = list(order = list(list(6, 'asc')), 
+                                 aLengthMenu = c(10,25, 50, 100, 1000), 
+                                 iDisplayLength = 25), escape = FALSE)
+    
+  }) ##### END TABLE FOR CELL_LINE_1 #####
   
-  #get false discovery rate from user
-  output$FDR_value <- renderUI({
-    numericInput("FDRvalue", "False Discovery Rate %",value = 10)
-  })
-  
-  #get minimum read count values to keep from user
-  output$min_reads <- renderUI({
-    numericInput("min_reads_value", "Drop genes with reads below:",value = 10)
-  })
-  
-  conditionpicker <- reactive({
+  datasetOutput_SelectedData <- reactive({
     
-    temp_coldata <- coldata()
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
     
-    condslist <- unique(temp_coldata[,2])
+    #filter gene list for CELL_LINE_1
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
     
-    return(condslist)
+    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
     
-  })
-  
-  coldatacompare <- reactive({
+    #save to new table
+    display_list <- CELL_LINE_1_filteredgenes
     
-    #cts <- output$rawreadstable
-    #coldata <- output$coldatatable
-    
-    temp_coldata <- coldata()
-    temp_cts <- cts()
-    
-    #check1 <- all(rownames(temp_coldata) %in% colnames(temp_cts))
-    
-    check1 <- all(rownames(temp_coldata) %in% colnames(temp_cts))
-    check2 <- all(rownames(temp_coldata) == colnames(temp_cts))
-    temp_cts <- temp_cts[, rownames(temp_coldata)]
-    check3 <- all(rownames(temp_coldata) == colnames(temp_cts))
-    
-    return(check3)
-  })
-  
-  #DEBUG - check coldata and read count tables for matching row\column names
-  output$coldatachecker <- renderText({
-    
-    coldatacompare()
-    
-  })
-  
-  #create DESeq2 data set (dds)
-  calc_get_dds <- reactive({
-    
-    #get values
-    temp_cts <- cts()
-    temp_coldata <- coldata()
-    
-    control_factor <- input$control_condslist
-    treatment1_factor <- input$treatment1_condslist
-    treatment2_factor <- input$treatment2_condslist
-    treatment3_factor <- input$treatment3_condslist
-    
-    #construct a DESeqDataSet
-    dds <- DESeqDataSetFromMatrix(countData = temp_cts, colData = temp_coldata, design = ~ condition)
-    #dds
-    
-    #pre-filter dds table to only keep genes that have at least min_reads_value reads set by user
-    keep <- rowSums(counts(dds)) > input$min_reads_value
-    dds <- dds[keep,]
-    
-    #OLD METHOD - Setting the factor level
-    #dds$condition <- factor(dds$condition, levels = c(control_factor, treatment1_factor))
-    
-    #NEW METHOD - Setting the factor level
-    dds$condition <- relevel(dds$condition, ref = control_factor)
-    
-    #Differential expression analysis
-    dds <- DESeq(dds)
-    
-    #write.csv(as.data.frame(dds), file='dds-output.csv')
-    
-    return(dds)
-    
-  })
-  
-  #calculate results from dds
-  #calculates LFC and FDR
-  calc_res <- reactive({
-    
-    #Update progress bar
-    totalSteps = 8 + 3
-    currentStep = 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Initializing..."))
-    
-    control_factor <- input$control_condslist
-    treatment1_factor <- input$treatment1_condslist
-    
-    #build LFC argument based define experimental conditions
-    LFC_coef <- paste("condition_", treatment1_factor, sep="")
-    LFC_coef <- paste(LFC_coef, control_factor, sep="_vs_")
-    
-    FDR_aplha <- (input$FDRvalue)/100
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Performing DESeq2 calculations..."))
-    
-    #calcate dds values
-    dds <<- calc_get_dds()
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Determing differential expression..."))
-    
-    #OLD WAY - set the contrasts for comparisons
-    #res <<- results(dds, contrast=c("condition",control_factor, treatment1_factor))
-    
-    #new way to set multifactor comparisons - log2FC[final/initial]
-    res <<- results(dds, contrast=c("condition", treatment1_factor, control_factor))
-    
-    #Log fold change shrinkage for visualization and ranking
-    #resultsNames(dds)
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Using 'apeglm' for LFC shrinkage..."))
-    
-    #adjust conditions based on contrast
-    resLFC <<- lfcShrink(dds, coef=LFC_coef, type="apeglm")
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Ordering by p values..."))
-    
-    #order results by smallest p value
-    resOrdered <<- res[order(res$pvalue),]
-    
-    #get some basic tallies using the summary function.
-    #summary(res)
-    
-    #many adjusted p-values are less than 0.1
-    #sum(res$padj < 0.1, na.rm=TRUE)
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Applying FDR correction..."))
-    
-    #filter res based on FDR cut off (10% = alpha of 0.1)
-    resFDR <<- results(dds, alpha=FDR_aplha)
-    #summary(res10)
-    #sum(res10$padj < FDR_aplha, na.rm=TRUE)
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Mapping ENSEMBL names to readable gene symbols..."))
-    
-    #map ensembl symbols to gene ids
-    res$GeneID <<- mapIds(org.Hs.eg.db,keys=rownames(res),column="SYMBOL",keytype="ENSEMBL",multiVals="first")
-    resFDR$GeneID <<- mapIds(org.Hs.eg.db,keys=rownames(resFDR),column="SYMBOL",keytype="ENSEMBL",multiVals="first")
-    resOrdered$GeneID <<- mapIds(org.Hs.eg.db,keys=rownames(resOrdered),column="SYMBOL",keytype="ENSEMBL",multiVals="first")
-    
-    #make a separate table ensembl symbols and gene ids
-    listofgenes <<- as.data.frame(res)
-    listofgenes <<- subset(listofgenes, select = c(GeneID))
-    listofgenes$ENSEMBL <<- rownames(listofgenes)
-    
-    #write files
-    #write.csv(as.data.frame(resOrdered), file='resOrdered-all-genes.csv')
-    #write.csv(as.data.frame(resFDR), file='resFDR.csv')
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Preparing to display table..."))
-    
-    resFDR <<- resFDR[,c(7,1:6)]
-    
-    return(resFDR)
-    #return(resOrdered)
+    #display_list[8:9] <- list(NULL)
+    #display_list <- display_list[,c(1:7,10:14)]
     
   })
-  
-  #output calculated dds + FDR table
-  output$calc_res_values <- DT::renderDataTable({
-    withProgress(message = 'Performing calculations...', value = 1, min = 1, max = 100, {
-      as.data.frame(calc_res())
-    })
+
+
+
+##### START TABLE FOR DOWNLOADING FOR CELL_LINE_1 #####
+  #process table for downloading
+  datasetOutput_CELL_LINE_1 <- reactive({
+    
+    #retrieve data
+    CELL_LINE_1_genedatapoints <- getdata()
+    
+    #filter gene list for CELL_LINE_1
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
+    
+    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
+
+        #save to new table
+    display_list <- CELL_LINE_1_filteredgenes
+
+    #display_list[8:9] <- list(NULL)
+    display_list <- display_list[,c(1:7,10:14)]
+    
   })
   
   #download all genes table
-  output$downloadDEGeneTable <- downloadHandler(
+  output$downloadData_CELL_LINE_1 <- downloadHandler(
     filename = function() {
-      paste("Differentially Expressed Genes.csv")
+      paste("CELL_LINE_1-filtered-table.csv")
     },
     content = function(file) {
-      write.csv(as.data.frame(calc_res()), file, row.names = FALSE)
+      write.csv(datasetOutput_CELL_LINE_1(), file, row.names = FALSE)
     }
   )
   
-  #PCA plot
-  output$PCA_plot = renderPlot({
-    withProgress(message = 'Generating PCA plot...', value = 1, min = 1, max = 100, {
-      do_PCA_plot()
-    })
-  })
-  
-  #function to draw PCA plot
-  do_PCA_plot <- reactive({
-    
-    #Update progress bar
-    totalSteps = 3 + 3
-    currentStep = 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Initializing..."))
-    
-    vsd <<- vst(dds, blind=FALSE)
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Calculating..."))
-    
-    pcaData <- plotPCA(vsd, intgroup=c("condition", "replicate"), returnData=TRUE)
-    percentVar <- round(100 * attr(pcaData, "percentVar"))
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Finalizing..."))
-    
-    p <- ggplot(pcaData, aes(PC1, PC2, color=condition, shape=replicate)) +
-      geom_point(size=3) +
-      xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-      ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
-      coord_fixed()
-    
-    print(p)
-    
-  })
-  
-  #gene count plot
-  output$genecount_plot = renderPlot({
-    withProgress(message = 'Generating read count plot...', value = 1, min = 1, max = 100, {
-      do_genecount_plot()
-    })
-  })
-  
-  #function to plot gene counts for user defined genes
-  do_genecount_plot <- reactive({
-    
-    #Update progress bar
-    totalSteps = 2 + 3
-    currentStep = 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Initializing..."))
-    
-    #get gene name from user
-    genename = toupper(input$gene_name)
-    
-    #get data for selected gene from dds data matrix
-    d <- plotCounts(dds, gene=listofgenes[which(listofgenes$GeneID==genename),2], intgroup=c("condition", "replicate"), returnData=TRUE)
-    
-    #Update progress bar
-    currentStep = currentStep + 1
-    incProgress(currentStep/totalSteps*100, detail = paste("Finalizing..."))
-    
-    p <- ggplot(d, aes(x=condition, y=count, color=condition, shape=replicate)) + 
-      geom_point(size=3, position=position_jitter(w=0.2,h=0)) +
-      geom_text(aes(label = replicate), position = position_nudge(y = -10)) +
-      #scale_y_log10(breaks=c(25,100,400)) +
-      ggtitle(genename) +
-      xlab("") +
-      ylab("Normalized count") +
-      theme_bw() +
-      theme(axis.text.x = element_text(colour="grey20",size=12,angle=0,hjust=.5,vjust=.5,face="plain"),
-            axis.text.y = element_text(colour="grey20",size=12,angle=0,hjust=1,vjust=0,face="plain"),  
-            axis.title.x = element_text(colour="grey20",size=12,angle=0,hjust=.5,vjust=0,face="plain"),
-            axis.title.y = element_text(colour="grey20",size=14,angle=90,hjust=.5,vjust=.5,face="plain"),
-            plot.title = element_text(colour="grey20",size=14,angle=0,hjust=.5,vjust=.5,face="plain"))
-    
-    #return the plot
-    print(p)
-  })
-  
-  output$volcanoPlot = renderPlotly({
-    
-    #get RNAseq data
-    RNAseqdatatoplot <- as.data.frame(resFDR)
-    
-    # add a grouping column; default value is "not significant"
-    RNAseqdatatoplot["group"] <- "NotSignificant"
-    
-    # for our plot, we want to highlight 
-    # FDR cutoff from text input padjcutoff (input$padjcutoff)
-    # Fold Change cutoff from input slider FCcutoff (input$FCcutoff)
-    
-    # change the grouping for the entries with significance but not a large enough Fold change
-    RNAseqdatatoplot[which(RNAseqdatatoplot['padj'] < input$padjcutoff & abs(RNAseqdatatoplot['log2FoldChange']) < input$FCcutoff ),"group"] <- "Significant"
-    
-    # change the grouping for the entries a large enough Fold change but not a low enough p value
-    RNAseqdatatoplot[which(RNAseqdatatoplot['padj'] > input$padjcutoff & abs(RNAseqdatatoplot['log2FoldChange']) > input$FCcutoff ),"group"] <- "FoldChange"
-    
-    # change the grouping for the entries with both significance and large enough fold change
-    RNAseqdatatoplot[which(RNAseqdatatoplot['padj'] < input$padjcutoff & abs(RNAseqdatatoplot['log2FoldChange']) > input$FCcutoff ),"group"] <- "Significant&FoldChange"
-    
-    # make gene names a URL to genecards.com
-    RNAseqdatatoplot$GENEurl <- paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", RNAseqdatatoplot$GeneID, "'>", RNAseqdatatoplot$GeneID, "</a>")
-    
-    # Find and label the top peaks..
-    top_peaks <- RNAseqdatatoplot[with(RNAseqdatatoplot, order(log2FoldChange, padj)),][1:10,]
-    top_peaks <- rbind(top_peaks, RNAseqdatatoplot[with(RNAseqdatatoplot, order(-log2FoldChange, padj)),][1:10,])
-    
-    # Add gene labels for all of the top genes we found 
-    # here we are creating an empty list, and filling it with entries for each row in the dataframe
-    # each list entry is another list with named items that will be used by Plot.ly
-    a <- list()
-    for (i in seq_len(nrow(top_peaks))) {
-      m <- top_peaks[i, ]
-      a[[i]] <- list(
-        x = m[["log2FoldChange"]],
-        y = -log10(m[["padj"]]),
-        text = m[["GeneID"]],
-        xref = "x",
-        yref = "y",
-        showarrow = TRUE,
-        arrowhead = 0.5,
-        ax = 20,
-        ay = -40
-      )
+  #download selected genes tabel from plotly selected data
+  output$downloadSelectedData <- downloadHandler(
+    filename = function() {
+      paste("CELL_LINE_1-Selected-Data.csv")
+    },
+    content = function(file) {
+      write.csv(datasetOutput_SelectedData(), file, row.names = FALSE)
     }
-    
-    x <- list(
-      title = "Log2 Fold change"
-    )
-    y <- list(
-      title = "FDR"
-    )
-    
-    p <- plot_ly(data = RNAseqdatatoplot, 
-                 x = RNAseqdatatoplot$log2FoldChange, 
-                 y = -log10(RNAseqdatatoplot$padj), 
-                 text = RNAseqdatatoplot$GENEurl, 
-                 mode = "markers", 
-                 color = RNAseqdatatoplot$group) %>% 
-      layout(title ="Volcano Plot", xaxis = x, yaxis = y) %>%
-      layout(annotations = a)
+  )
 
+##### END TABLE FOR DOWNLOADING FOR CELL_LINE_1 #####
+  
+
+  #button action to show all genes
+  observeEvent(input$btnshowall, {
+    
+    updateSliderInput(session, "Final.ES", label = NULL, value = "20000")
+    updateSliderInput(session, "Initial.ES", label = NULL, value = "0")
+    updateSliderInput(session, "Library.ES", label = NULL, value = "0")
+    updateSliderInput(session, "ER.range", label = NULL, value = c(-30,30))
+
+  })
+  
+  #button action to set defaults
+  observeEvent(input$btndefault, {
+    
+    updateSliderInput(session, "Final.ES", label = NULL, value = "15000")
+    updateSliderInput(session, "Initial.ES", label = NULL, value = "1")
+    updateSliderInput(session, "Library.ES", label = NULL, value = "200")
+    updateSliderInput(session, "ER.range", label = NULL, value = c(-20,20))
     
   })
 
 })
-
-
-
