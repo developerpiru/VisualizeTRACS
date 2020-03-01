@@ -79,7 +79,7 @@ shinyServer(function(input, output, session) {
     p <- plot_ly(CELL_LINE_1_genedatapoints, x = ~Final.ES, y = ~Initial.ES, z = ~Library.ES,
                  marker = list(symbol = 'circle', size = 4),
                  color = ~filteredstat, 
-                 colors = c('#BF382A', '#0C4B8E')) %>%
+                 colors = c(input$threeDfilteredColor, input$threeDUnfilteredColor)) %>%
       
       add_markers() %>%
       

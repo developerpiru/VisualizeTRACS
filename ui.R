@@ -125,8 +125,8 @@ ui <- dashboardPage(
                          
                          h4("Colors"),
                          tags$div('class'="borderbox",
-                                  colourInput("3DfilteredColor", "Filtered color", "#2714FC", allowTransparent = FALSE),
-                                  colourInput("3DUnfilteredColor", "Unfiltered color", "#B8B4B4", allowTransparent = FALSE)
+                                  colourInput("threeDfilteredColor", "Filtered color", "#2714FC", allowTransparent = FALSE),
+                                  colourInput("threeDUnfilteredColor", "Unfiltered color", "#B8B4B4", allowTransparent = FALSE)
                          )
                          
                      )),
