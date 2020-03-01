@@ -40,21 +40,14 @@ shinyServer(function(input, output, session) {
                              header = TRUE,
                              sep = ",")
 
+    #find the first quartile of library scores to update the numericInput for Library.ES
+    lib_quants <<- as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"])
+    updateNumericInput(session, "Library.ES", label = NULL, value = lib_quants)
+    
     return(CELL_LINE_1_genedatapoints)
     
-    #find the first quartile of library scores to update the numericInput for Library.ES
-    #updateNumericInput(session, "Library.ES", label = NULL, value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
-    
   })
   
-  #draw Library ES numericInput with calculated 1st quartile of Library ES
-  output$Library.ES <- renderUI({
-  
-    numericInput("Library.ES", 
-                 "Min Library ES", 
-                 value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
-  })
- 
   output$htmltitle = renderPlotly({
     
     CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
@@ -333,7 +326,7 @@ shinyServer(function(input, output, session) {
   #button action to set defaults
   observeEvent(input$btndefault, {
     
-    updateNumericInput(session, "Library.ES", label = NULL, value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
+    updateNumericInput(session, "Library.ES", label = NULL, value = lib_quants)
     updateNumericInput(session, "Initial.ES", label = NULL, value = "0")
     updateNumericInput(session, "Final.ES", label = NULL, value = "500000")
     updateNumericInput(session, "Min.ER", label = NULL, value = "-100")

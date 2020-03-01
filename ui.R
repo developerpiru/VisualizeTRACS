@@ -86,8 +86,11 @@ ui <- dashboardPage(
                          
                          h4("Filtering options"),
                          tags$div('class'="borderbox",
-                                  #place holder for Library ES input
-                                  uiOutput("Library.ES"),
+
+                                  #Min Initial ES input
+                                  numericInput("Library.ES", 
+                                               "Min Initial ES",
+                                               value = 0),
                                   
                                   #Min Initial ES input
                                   numericInput("Initial.ES", 
