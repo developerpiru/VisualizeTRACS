@@ -1,7 +1,9 @@
 # VisualizeTRACS
 
 # Introduction
-VisualizeTRACS is an R-based tool that allows you to visualize data from [TRACS](https://github.com/developerpiru/TRACS)
+VisualizeTRACS is an R-based tool that allows you to visualize data from [TRACS](https://github.com/developerpiru/TRACS). Unlike TRACS, VisualizeTRACS does not need a powerful computer. You can download the TRACS output file from a remote server (if you used one to run TRACS) and use VisualizeTRACS on a local computer to explore the data. 
+
+VisualizeTRACS can also be installed on a server for shared access within your group.
 
 ***The latest release can be downloaded [here](https://github.com/developerpiru/VisualizeTRACS/releases/)***
 
