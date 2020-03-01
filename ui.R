@@ -30,7 +30,7 @@ library("shinyjqui")
 library("colourpicker")
 
 ui <- dashboardPage(
-  dashboardHeader(title = "VisualizeTRACS v3.0"),
+  dashboardHeader(title = "VisualizeTRACS"),
   
   dashboardSidebar(
     
