@@ -9,22 +9,9 @@ VisualizeTRACS is an R-based tool that allows you to visualize data from [TRACS]
 
 [Installation & Requirements](https://github.com/developerpiru/VisualizeTRACS#installation--requirements)
 
-[Run BEAVR](https://github.com/developerpiru/BEAVR#run-beavr)
+[Run VisualizeTRACS](https://github.com/developerpiru/VisualizeTRACS#run-visualizetracs)
 
-[Usage](https://github.com/developerpiru/BEAVR#usage)
-
-- [Preparing the read count table file](https://github.com/developerpiru/BEAVR#preparing-the-read-count-table-file)
-- [Preparing the sample treatment matrix file](https://github.com/developerpiru/BEAVR#preparing-the-sample-treatment-matrix-file)
-- [Loading your data into BEAVR](https://github.com/developerpiru/BEAVR#loading-your-data-into-beavr)
-- [Experiment settings](https://github.com/developerpiru/BEAVR#experiment-settings)
-- [Differential gene expression (DGE) analysis](https://github.com/developerpiru/BEAVR#differential-gene-expression-analysis-dge)
-- [Plots, graphs and heatmaps](https://github.com/developerpiru/BEAVR#plots-graphs-and-heatmaps)
-  - [PCA plot](https://github.com/developerpiru/BEAVR#pca-plot)
-  - [Sample clustering plot](https://github.com/developerpiru/BEAVR#sample-clustering-plot)
-  - [Read count plot](https://github.com/developerpiru/BEAVR#read-count-plots)
-  - [Heatmap](https://github.com/developerpiru/BEAVR#heatmap)
-  - [Volcano plot](https://github.com/developerpiru/BEAVR#volcano-plot)
-  - [Resizing and saving images](https://github.com/developerpiru/BEAVR#resizing-and-saving-images)
+[Usage](https://github.com/developerpiru/VisualizeTRACS#usage)
 
 ## Installation & Requirements
 
@@ -40,7 +27,7 @@ install.packages("shiny")
 install.packages("shinydashboard")
 ```
 
-Then follow the steps below to [Run VisualizeTRACS](https://github.com/developerpiru/VisualizeTRACS#run-beavr). 
+Then follow the steps below to [Run VisualizeTRACS](https://github.com/developerpiru/VisualizeTRACS#run-visualizetracs). 
 
 All other required components should be installed upon first launch. **If you run into an error**, you can manually install these other components:
 
