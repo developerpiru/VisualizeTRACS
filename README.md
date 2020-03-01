@@ -9,11 +9,11 @@ VisualizeTRACS can also be installed on a server for shared access within your g
 
 # Table of Contents
 
-[Installation & Requirements](https://github.com/developerpiru/VisualizeTRACS#installation--requirements)
++ [Installation & Requirements](https://github.com/developerpiru/VisualizeTRACS#installation--requirements)
 
-[Run VisualizeTRACS](https://github.com/developerpiru/VisualizeTRACS#run-visualizetracs)
++ [Run VisualizeTRACS](https://github.com/developerpiru/VisualizeTRACS#run-visualizetracs)
 
-[Usage](https://github.com/developerpiru/VisualizeTRACS#usage)
++ [Usage](https://github.com/developerpiru/VisualizeTRACS#usage)
 
 ## Installation & Requirements
 
