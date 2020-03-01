@@ -1,42 +1,155 @@
-#runApp("shinyappv2", host = "0.0.0.0", port = 80)
+# VisualizeTRACS: A Browser-based tool for TRACS data
+# Visualize and explore your data from TRACS (https://github.com/developerpiru/TRACS)
+# input: a TRACS output file (csv)
+# See Github for more info & ReadMe: https://github.com/developerpiru/VisualizeTRACS
+
+app_version = "3.0.0"
+
+#function to check for required packages and install them if not already installed
+installReqs <- function(package_name, bioc){
+  if (requireNamespace(package_name, quietly = TRUE) == FALSE) {
+      install.packages(package_name)
+  }
+}
+
+#check if required libraries are installed, and install them if needed
+installReqs("shiny")
+installReqs("shinydashboard")
+installReqs("scatterD3")
+installReqs("plotly")
+installReqs("DT")
+installReqs('shinyjqui')
+installReqs('colourpicker')
+
+library(shiny)
+library(shinydashboard)
+library(scatterD3)
+library(plotly)
+library(DT)
+library("shinyjqui")
+library("colourpicker")
 
 ui <- dashboardPage(
   dashboardHeader(title = "VisualizeTRACS v3.0"),
   
   dashboardSidebar(
     
-      #buttons
-      actionButton("btnshowall", "Show all genes"),
-      actionButton("btndefault", "Default values"),
+    tags$style(".skin-purple .sidebar 
+               a { 
+                  color: #444; 
+               }"),
     
-      #spheroid axis slider: x axis
-      sliderInput("Final.ES", 
-                  "Max Final Gene Enrichment Score (Final.ES)", 
-                  min = 0,
-                  max = 20000, 
-                  value = 15000),
-      
-      #adherent axis slider: y axis
-      sliderInput("Initial.ES", 
-                  "Min Initial Gene Enrichment Score (Initial.ES)", 
-                  min = 0,
-                  max = 20000, 
-                  value = 1),
-      
-      #library axis slider: z axis
-      sliderInput("Library.ES", 
-                  "Min Library Enrichment Score (Library.ES)", 
-                  min = 0,
-                  max = 20000, 
-                  value = 200),
-      
-      #range for Enrichment Ratio ER)
-      sliderInput("ER.range", 
-                  "Range for Enrichment Ratio (ER = Log2[Final.ES/Initial.ES])", 
-                  min = -30,
-                  max = 30, 
-                  value = c(-20,20))
-      
+    tags$style(".skin-purple .sidebar 
+               a.sidebarlink:link, a.sidebarlink:visited { 
+                                    color: #FFF;
+               }"),
+    tags$style(".skin-purple .sidebar
+                a.sidebarlink:hover {
+                                    color: #777;
+               }"),
+    
+    tags$style(".skin-purple .sidebar
+                .center {
+                        text-align: center;
+               }"),
+    
+    tags$style(".skin-purple .sidebar
+                .borderbox {
+                        border: 2px solid #666;
+                        padding: 5px 5px 5px 5px;
+                        margin: 5px;
+               }"),
+    
+    conditionalPanel("input.navigationTabs == 'LoadDataTab'",
+                     div(id = 'LoadDataTab_SideBar',
+                         
+                         tags$div('class'="center",
+                                  h4("Welcome to VisualizeTRACS!"),
+                                  HTML('This is the browser-based data visualization and exploration tool for TRACS<br><br>'),
+                                  tags$p(
+                                    tags$a(href="https://github.com/developerpiru/VisualizeTRACS",
+                                           target="_blank",
+                                           class ="sidebarlink",
+                                           "Check GitHub for help & info")
+                                  ))
+                     )),
+    
+    conditionalPanel("input.navigationTabs == '3DPlotTab'",
+                     div(id = '3DPlotTab_SideBar',
+                         
+                         tags$div('class'="center", 
+                                  tags$br(),
+                                  #buttons
+                                  actionButton("btnshowall", "Show all genes"),
+                                  actionButton("btndefault", "Default values")
+                         ),
+                         
+                         h4("Filtering options"),
+                         tags$div('class'="borderbox",
+                                  #place holder for Library ES input
+                                  uiOutput("Library.ES"),
+                                  
+                                  #Min Initial ES input
+                                  numericInput("Initial.ES", 
+                                               "Min Initial ES",
+                                               value = 0),
+                                  
+                                  #Min Final ES input
+                                  numericInput("Final.ES", 
+                                               "Max Final ES",
+                                               value = 500000),
+                                  
+                                  #Min ER
+                                  numericInput("Min.ER", 
+                                               "Min Enrichment Ratio",
+                                               value = -100),
+                                  
+                                  #Max ER
+                                  numericInput("Max.ER", 
+                                               "Max Enrichment Ratio",
+                                               value = 0),
+                                  
+                                  #p value
+                                  numericInput("pval", 
+                                               "Max P value (genes above this are dropped)", 
+                                               value = 1),
+                                  
+                                  #q value
+                                  numericInput("qval", 
+                                               "Max q value (genes above this are dropped)", 
+                                               value = 0.05)
+                         ),
+                         
+                         h4("Colors"),
+                         tags$div('class'="borderbox",
+                                  colourInput("3DfilteredColor", "Filtered color", "#2714FC", allowTransparent = FALSE),
+                                  colourInput("3DUnfilteredColor", "Unfiltered color", "#B8B4B4", allowTransparent = FALSE)
+                         )
+                         
+                     )),
+    
+    conditionalPanel("input.navigationTabs == '2DPlotTab'",
+                     div(id = '2DPlotTab_SideBar',
+                         
+                         h4("Colors"),
+                         tags$div('class'="borderbox",
+                                  colourInput("filteredColor", "Filtered color", "#2714FC", allowTransparent = FALSE),
+                                  colourInput("UnfilteredColor", "Unfiltered color", "#B8B4B4", allowTransparent = FALSE)
+                         )
+                         
+                     )),
+    
+    conditionalPanel("input.navigationTabs == 'DataTableTab'",
+                     div(id = 'DataTableTab_SideBar',
+                         
+                         HTML("<p align='center'><br>"),
+                         downloadButton("downloadData_CELL_LINE_1", "Download Filtered Genes"),
+                         
+                         #HTML("<p align='center'><br>"),
+                         downloadButton("downloadSelectedData", "Download Selected Genes")
+           
+                     ))
+  
     
   ), #end dashboard Sidebar
   
@@ -57,34 +170,32 @@ ui <- dashboardPage(
     
       tabsetPanel(
         
-        tabPanel("Load data", fluidRow(
+        id = "navigationTabs",
+        
+        tabPanel("Load data", id = "LoadDataTab", value= "LoadDataTab", fluidRow(
           
           #Load TRACS analysis file
-          fileInput("TRACSfile1", "Select TRACS analysis file",
+          fileInput("TRACSfile1", "Select TRACS output file",
                     multiple = FALSE,
-                    accept = c("text/plain",
-                               "text/comma-separated-values,text/plain",
-                               ".csv"))
+                    accept = c(".csv"))
+          
                 )),
         
         # full 3D plot tab
-        tabPanel("3D Plot", fluidRow(
+        tabPanel("3D Plot", id = "3DPlotTab", value= "3DPlotTab", fluidRow(
           HTML("<h3><p align='center'>Plot of all genes</p></h3>"),
-          column(12, plotlyOutput("full3Dplot_CELL_LINE_1", height = "500", width = "100%"))
-                 )),
-   
+          column(12, jqui_resizable( #jqui resizable canvas,
+            plotlyOutput("full3Dplot_CELL_LINE_1", height = "100%", width = "100%"))
+                 ))),
+
         # Plotly graph with polygon select
-        tabPanel("Scatter plot", plotlyOutput("filteredPlotly_CELL_LINE_1", height = "800", width="100%"),
-                 #verbatimTextOutput("plotly_select")
-                 downloadButton("downloadSelectedData", "Download Table"),
-                 DT::dataTableOutput("plotly_select")
+        tabPanel("2D Plot", id = "2DPlot", value= "2DPlotTab", jqui_resizable( #jqui resizable canvas,
+          plotlyOutput("filteredPlotlyColour_CELL_LINE_1", height = "800", width="100%"))
         ),
         
         # Filtered table tab for CELL_LINE_1
-        tabPanel("Data Table", 
-                 HTML("<p align='center'>Download filtered table"),
-                 downloadButton("downloadData_CELL_LINE_1", "Download Table"),
-                 HTML("</p>"),
+        tabPanel("Data Table", id = "DataTableTab", value= "DataTableTab", 
+                 #HTML("</p>"),
                  DT::dataTableOutput("filteredtable_CELL_LINE_1")
                   )
       )

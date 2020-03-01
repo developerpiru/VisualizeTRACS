@@ -1,15 +1,33 @@
-#runApp("shinyapp", host = "0.0.0.0", port = 80)
+# VisualizeTRACS: A Browser-based tool for TRACS data
+# Visualize and explore your data from TRACS (https://github.com/developerpiru/TRACS)
+# input: a TRACS output file (csv)
+# See Github for more info & ReadMe: https://github.com/developerpiru/VisualizeTRACS
 
-# web app to visualize one cell line at a time #
-# place holders to visualize two cell lines at a time #
+app_version = "3.0.0"
+
+#function to check for required packages and install them if not already installed
+installReqs <- function(package_name, bioc){
+  if (requireNamespace(package_name, quietly = TRUE) == FALSE) {
+    install.packages(package_name)
+  }
+}
+
+#check if required libraries are installed, and install them if needed
+installReqs("shiny")
+installReqs("shinydashboard")
+installReqs("scatterD3")
+installReqs("plotly")
+installReqs("DT")
+installReqs('shinyjqui')
+installReqs('colourpicker')
 
 library(shiny)
 library(shinydashboard)
 library(scatterD3)
 library(plotly)
 library(DT)
-#library(shinyRGL)
-#library(shinyWidgets)
+library("shinyjqui")
+library("colourpicker")
 
 # Define server logic required to generate and plot a random distribution
 shinyServer(function(input, output, session) {
@@ -18,10 +36,23 @@ shinyServer(function(input, output, session) {
   getdata <- reactive({
     req(input$TRACSfile1)
     
-    CELL_LINE_1_genedatapoints <<- read.table(input$TRACSfile1$datapath, sep="\t", header=TRUE)
+    CELL_LINE_1_genedatapoints <<- read.csv(input$TRACSfile1$datapath,
+                             header = TRUE,
+                             sep = ",")
 
     return(CELL_LINE_1_genedatapoints)
     
+    #find the first quartile of library scores to update the numericInput for Library.ES
+    #updateNumericInput(session, "Library.ES", label = NULL, value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
+    
+  })
+  
+  #draw Library ES numericInput with calculated 1st quartile of Library ES
+  output$Library.ES <- renderUI({
+  
+    numericInput("Library.ES", 
+                 "Min Library ES", 
+                 value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
   })
  
   output$htmltitle = renderPlotly({
@@ -43,37 +74,51 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
                              [Initial.ES >= input$Initial.ES & 
                                Library.ES >= input$Library.ES &
+                               #Final.ES <= input$Final.ES &
                                Final.ES <= input$Final.ES] <- 'Filtered')
+                               #Lib.ER >= input$Library.ER &
+                               #Lib.pval >= input$Library.pval&
+                               #qval <= input$ER.qval] <- 'Filtered')
     
     
     CELL_LINE_1_genedatapoints$filteredstat <- as.factor(CELL_LINE_1_genedatapoints$filteredstat)
     
     p <- plot_ly(CELL_LINE_1_genedatapoints, x = ~Final.ES, y = ~Initial.ES, z = ~Library.ES,
-                 marker = list(symbol = 'circle', size = 1),
+                 marker = list(symbol = 'circle', size = 4),
                  color = ~filteredstat, 
                  colors = c('#BF382A', '#0C4B8E')) %>%
       
       add_markers() %>%
       
       layout(title = "", 
-             scene = list(xaxis = list(title = 'Final Score'),
-                          yaxis = list(title = 'Initial Score'),
-                          zaxis = list(title = 'Library Score')),
+             scene = list(xaxis = list(title = 'Final ES'),
+                          yaxis = list(title = 'Initial ES'),
+                          zaxis = list(title = 'Library ES')),
              showlegend = FALSE)
     
   }) ##### END 3D Plot for CELL_LINE_1 #####
   
+
   ##### START 2D Plotly for CELL_LINE_1 #####
-  output$filteredPlotly_CELL_LINE_1 <- renderPlotly({
+  output$filteredPlotlyColour_CELL_LINE_1 <- renderPlotly({
     
     #retrieve data
     CELL_LINE_1_genedatapoints <- getdata()
     
-    #filter gene list for CELL_LINE_1
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2]) 
+    CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
+    
+    #genes to keep
+    CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
+                                         [Initial.ES >= input$Initial.ES & #above initial ES
+                                             Library.ES >= input$Library.ES & #above library ES
+                                             Final.ES <= input$Final.ES & #below final ES
+                                             EnrichmentRatio >= input$Min.ER & #below ER (for dropouts)
+                                             #EnrichmentRatio < 0 & #below ER (for dropouts)
+                                             EnrichmentRatio <= input$Max.ER & #below ER (for dropouts)
+                                             pval <= input$pval & #below significant p adjusted value
+                                             qval <= input$qval] <- 'Filtered') #below significant q value
+    
+    CELL_LINE_1_genedatapoints$filteredstat <- as.factor(CELL_LINE_1_genedatapoints$filteredstat)
     
     #create a list that contains data to draw a straight line (y = x)
     #for drawing sraight line
@@ -87,21 +132,38 @@ shinyServer(function(input, output, session) {
     lines <- list()
     for (i in c(0, 3, 5, 7, 9, 13)) {
       line[["x0"]] <- 0
-      line[["x1"]] <- max(CELL_LINE_1_filteredgenes$Initial.ES)
+      line[["x1"]] <- max(CELL_LINE_1_genedatapoints$Initial.ES)
       line[["y0"]] <- 0
-      line[["y1"]] <- max(CELL_LINE_1_filteredgenes$Final.ES)
+      line[["y1"]] <- max(CELL_LINE_1_genedatapoints$Initial.ES)
       lines <- c(lines, list(line))
     }
     
+    #set fonts for plotly graph
+    fontstyle <- list(
+      family = "Arial",
+      size = 14,
+      color = "#000000"
+    )
+    xstyle <- list(
+      title = "Initial ES",
+      titlefont = fontstyle
+    )
+    ystyle <- list(
+      title = "Final ES",
+      titlefont = fontstyle
+    )
+    
     # use the key aesthetic/argument to help uniquely identify selected observations
-    key <- CELL_LINE_1_filteredgenes$Gene
-    plot_ly(CELL_LINE_1_filteredgenes, 
+    key <- CELL_LINE_1_genedatapoints$Gene
+    plot_ly(CELL_LINE_1_genedatapoints, 
             x = ~Initial.ES, 
             y = ~Final.ES,
-            size = ~ER,
-            color = ~ER,
-            key = ~key) %>%
-      layout(dragmode = "select", shapes=lines)
+            size = 10,
+            color = ~filteredstat,
+            opacity = 0.7,
+            key = ~key,
+            colors = c(input$filteredColor, input$UnfilteredColor)) %>%
+      layout(dragmode = "select", shapes=lines, xaxis = xstyle, yaxis = ystyle)
   })
   ##### END 2D Plotly for CELL_LINE_1 #####
    
@@ -115,8 +177,10 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
-    
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
+
     #set rownames of CELL_LINE_1_filteredgenes
     rownames(CELL_LINE_1_filteredgenes) <- CELL_LINE_1_filteredgenes$Gene
     
@@ -167,10 +231,10 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
-    
-    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
-
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
+ 
     #make gene names a URL to genecards
     CELL_LINE_1_filteredgenes$Gene <-  paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", CELL_LINE_1_filteredgenes$Gene, "' target='_blank'>", CELL_LINE_1_filteredgenes$Gene, "</a>")
     
@@ -193,10 +257,10 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
-    
-    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
-    
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
+
     #save to new table
     display_list <- CELL_LINE_1_filteredgenes
     
@@ -206,8 +270,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-
-##### START TABLE FOR DOWNLOADING FOR CELL_LINE_1 #####
+  ##### START TABLE FOR DOWNLOADING FOR CELL_LINE_1 #####
   #process table for downloading
   datasetOutput_CELL_LINE_1 <- reactive({
     
@@ -218,22 +281,23 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER >= input$ER.range[1] & ER <= input$ER.range[2])
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
     
-    #CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, ER <= input$sphratio_threshold)
 
-        #save to new table
+    #save to new table
     display_list <- CELL_LINE_1_filteredgenes
 
     #display_list[8:9] <- list(NULL)
-    display_list <- display_list[,c(1:7,10:14)]
+    #display_list <- display_list[,c(1:7,10:14)]
     
   })
   
   #download all genes table
   output$downloadData_CELL_LINE_1 <- downloadHandler(
     filename = function() {
-      paste("CELL_LINE_1-filtered-table.csv")
+      paste("VisualizeTRACS-filtered-output.csv")
     },
     content = function(file) {
       write.csv(datasetOutput_CELL_LINE_1(), file, row.names = FALSE)
@@ -243,7 +307,7 @@ shinyServer(function(input, output, session) {
   #download selected genes tabel from plotly selected data
   output$downloadSelectedData <- downloadHandler(
     filename = function() {
-      paste("CELL_LINE_1-Selected-Data.csv")
+      paste("VisualizeTRACS-selected-output.csv")
     },
     content = function(file) {
       write.csv(datasetOutput_SelectedData(), file, row.names = FALSE)
@@ -256,20 +320,26 @@ shinyServer(function(input, output, session) {
   #button action to show all genes
   observeEvent(input$btnshowall, {
     
-    updateSliderInput(session, "Final.ES", label = NULL, value = "20000")
-    updateSliderInput(session, "Initial.ES", label = NULL, value = "0")
-    updateSliderInput(session, "Library.ES", label = NULL, value = "0")
-    updateSliderInput(session, "ER.range", label = NULL, value = c(-30,30))
+    updateNumericInput(session, "Library.ES", label = NULL, value = "0")
+    updateNumericInput(session, "Initial.ES", label = NULL, value = "0")
+    updateNumericInput(session, "Final.ES", label = NULL, value = "0")
+    updateNumericInput(session, "Min.ER", label = NULL, value = "-100")
+    updateNumericInput(session, "Max.ER", label = NULL, value = "100")
+    updateNumericInput(session, "pval", label = NULL, value = "1")
+    updateNumericInput(session, "qval", label = NULL, value = "1")
 
   })
   
   #button action to set defaults
   observeEvent(input$btndefault, {
     
-    updateSliderInput(session, "Final.ES", label = NULL, value = "15000")
-    updateSliderInput(session, "Initial.ES", label = NULL, value = "1")
-    updateSliderInput(session, "Library.ES", label = NULL, value = "200")
-    updateSliderInput(session, "ER.range", label = NULL, value = c(-20,20))
+    updateNumericInput(session, "Library.ES", label = NULL, value = as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"]))
+    updateNumericInput(session, "Initial.ES", label = NULL, value = "0")
+    updateNumericInput(session, "Final.ES", label = NULL, value = "500000")
+    updateNumericInput(session, "Min.ER", label = NULL, value = "-100")
+    updateNumericInput(session, "Max.ER", label = NULL, value = "0")
+    updateNumericInput(session, "pval", label = NULL, value = "1")
+    updateNumericInput(session, "qval", label = NULL, value = "0.05")
     
   })
 
