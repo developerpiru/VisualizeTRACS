@@ -38,7 +38,7 @@ shinyServer(function(input, output, session) {
     
     CELL_LINE_1_genedatapoints <<- read.csv(input$TRACSfile1$datapath,
                              header = TRUE,
-                             sep = ",")
+                             sep = "\t")
 
     #find the first quartile of library scores to update the numericInput for Library.ES
     lib_quants <<- as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"])
