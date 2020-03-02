@@ -75,6 +75,8 @@ VisualizeTRACS requires you to load a [TRACS](https://github.com/developerpiru/T
 
 ![Image of experiment folder](Screenshots/Experimentfolder3.png)
 
+Click ```Browse``` in the main tab to select the file.
+
 ![Image of load data interface](Screenshots/Loaddata.jpg)
 
 You can then view a 3D plot of all scores (Library ES on the z axis, Final ES on the x axis, and Initial ES on the y axis). You can customize the colors for the filtered and unfiltered genes. By default, the first quartile (bottom 25%) of Library ES is set as the minimum threshold for Library ES (genes below this cutoff will be dropped).
