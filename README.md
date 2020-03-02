@@ -73,16 +73,18 @@ If you are using R, a browser window should open automatically showing the app. 
 
 VisualizeTRACS requires you to load a [TRACS](https://github.com/developerpiru/TRACS) output file (in csv format).
 
-![Image of read count table](Screenshots/Loaddata.jpg)
+![Image of experiment folder](Screenshots/Experimentfolder3.png)
+
+![Image of load data interface(Screenshots/Loaddata.jpg)
 
 You can then view a 3D plot of all scores (Library ES on the z axis, Final ES on the x axis, and Initial ES on the y axis). You can customize the colors for the filtered and unfiltered genes. By default, the first quartile (bottom 25%) of Library ES is set as the minimum threshold for Library ES (genes below this cutoff will be dropped).
 
-![Image of read count table](Screenshots/3Dplot.jpg)
+![Image of 3D plot](Screenshots/3Dplot.jpg)
 
 Next you can view a plot of the Initial ES vs. Final ES based on the genes you have filtered for using the sidebar in the 3D Plot tab. The diagonal line runs along y=x; any genes below this line have a negative Enrichment Ratio (ER) and any genes above it have a positive ER.
 
-![Image of read count table](Screenshots/2Dplot.jpg)
+![Image of 2D plot](Screenshots/2Dplot.jpg)
 
 You can view a table of the genes you have filtered in the Data Table tab. You can sort the data by any column. Click on the gene names to the [Gene Cards](https://www.genecards.org/) listing for that gene. Use the download buttons to download the filtered table. You can also click on rows to select individual genes and use the "Download Selected Genes" button to only download a table of those genes.
 
-![Image of read count table](Screenshots/Genetable.jpg)
+![Image of Data table](Screenshots/Genetable.jpg)
