@@ -7,7 +7,7 @@ VisualizeTRACS can also be installed on a server for shared access within your g
 
 **The latest release can be downloaded [here](https://github.com/developerpiru/VisualizeTRACS/releases/)**
 
-**A sample TRACS output file can be downloaded [here](https://github.com/developerpiru/VisualizeTRACS/blob/master/SampleTRACS-Output.csv)**
+**A sample TRACS output file can be downloaded [here](https://github.com/developerpiru/VisualizeTRACS/blob/master/SampleTRACS-Output.csv) to test VisualizeTRACS**
 
 # Table of Contents
 
