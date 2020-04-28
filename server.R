@@ -3,7 +3,7 @@
 # input: a TRACS output file (csv)
 # See Github for more info & ReadMe: https://github.com/developerpiru/VisualizeTRACS
 
-app_version = "3.0.0"
+app_version = "3.0.1"
 
 #function to check for required packages and install them if not already installed
 installReqs <- function(package_name, bioc){
@@ -36,9 +36,7 @@ shinyServer(function(input, output, session) {
   getdata <- reactive({
     req(input$TRACSfile1)
     
-    CELL_LINE_1_genedatapoints <<- read.csv(input$TRACSfile1$datapath,
-                             header = TRUE,
-                             sep = "\t")
+    CELL_LINE_1_genedatapoints <<- read.csv(input$TRACSfile1$datapath, sep=",", header=TRUE)
 
     #find the first quartile of library scores to update the numericInput for Library.ES
     lib_quants <<- as.integer(quantile(CELL_LINE_1_genedatapoints$Library.ES)["25%"])
@@ -105,10 +103,10 @@ shinyServer(function(input, output, session) {
                                          [Initial.ES >= input$Initial.ES & #above initial ES
                                              Library.ES >= input$Library.ES & #above library ES
                                              Final.ES <= input$Final.ES & #below final ES
-                                             EnrichmentRatio >= input$Min.ER & #below ER (for dropouts)
+                                             EnrichmentRatio >= input$Min.ER & #above min ER
                                              #EnrichmentRatio < 0 & #below ER (for dropouts)
-                                             EnrichmentRatio <= input$Max.ER & #below ER (for dropouts)
-                                             pval <= input$pval & #below significant p adjusted value
+                                             EnrichmentRatio <= input$Max.ER & #below max ER
+                                             pval <= input$pval & #below significant p value
                                              qval <= input$qval] <- 'Filtered') #below significant q value
     
     CELL_LINE_1_genedatapoints$filteredstat <- as.factor(CELL_LINE_1_genedatapoints$filteredstat)
@@ -165,15 +163,16 @@ shinyServer(function(input, output, session) {
     
     #retrieve data
     CELL_LINE_1_genedatapoints <- getdata()
-    
+
     #filter gene list for CELL_LINE_1
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
-    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pva)
     CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
-
+    
+    
     #set rownames of CELL_LINE_1_filteredgenes
     rownames(CELL_LINE_1_filteredgenes) <- CELL_LINE_1_filteredgenes$Gene
     
@@ -197,7 +196,7 @@ shinyServer(function(input, output, session) {
     
     #if (is.null(temp_df)){
     #  m <- data.frame(matrix(0, ncol = 2, nrow = 1))
-    #  m[1,1] <- "Nothing selected yet"
+    #  m[1,1] <- "Select some data points"
     #  display_table <- m
     #}
     
@@ -210,7 +209,7 @@ shinyServer(function(input, output, session) {
                   options = list(order = list(list(6, 'asc')), 
                                  aLengthMenu = c(10,25, 50, 100, 1000), 
                                  iDisplayLength = 25), escape = FALSE)
-   
+    
   }) ##### END PLOTLY SELECT FUNCTION #####
   
   ##### START TABLE FOR CELL_LINE_1 #####

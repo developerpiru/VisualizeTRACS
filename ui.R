@@ -3,7 +3,7 @@
 # input: a TRACS output file (csv)
 # See Github for more info & ReadMe: https://github.com/developerpiru/VisualizeTRACS
 
-app_version = "3.0.0"
+app_version = "3.0.1"
 
 #function to check for required packages and install them if not already installed
 installReqs <- function(package_name, bioc){
@@ -89,7 +89,7 @@ ui <- dashboardPage(
 
                                   #Min Initial ES input
                                   numericInput("Library.ES", 
-                                               "Min Initial ES",
+                                               "Min Library ES",
                                                value = 0),
                                   
                                   #Min Initial ES input
@@ -192,8 +192,10 @@ ui <- dashboardPage(
                  ))),
 
         # Plotly graph with polygon select
-        tabPanel("2D Plot", id = "2DPlot", value= "2DPlotTab", jqui_resizable( #jqui resizable canvas,
-          plotlyOutput("filteredPlotlyColour_CELL_LINE_1", height = "800", width="100%"))
+        tabPanel("2D Plot", id = "2DPlot", value= "2DPlotTab", jqui_resizable(plotlyOutput("filteredPlotlyColour_CELL_LINE_1", height = "800", width="100%")),
+          #verbatimTextOutput("plotly_select")
+          #downloadButton("downloadSelectedData", "Download Table"),
+          DT::dataTableOutput("plotly_select")
         ),
         
         # Filtered table tab for CELL_LINE_1
