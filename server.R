@@ -63,13 +63,23 @@ shinyServer(function(input, output, session) {
     CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
     
     CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
-                             [Initial.ES >= input$Initial.ES & 
+                             [Initial.ES >= input$Initial.ES &
                                Library.ES >= input$Library.ES &
                                #Final.ES <= input$Final.ES &
                                Final.ES <= input$Final.ES] <- 'Filtered')
                                #Lib.ER >= input$Library.ER &
                                #Lib.pval >= input$Library.pval&
                                #qval <= input$ER.qval] <- 'Filtered')
+    
+    # CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
+    #                                      [Initial.ES >= input$Initial.ES & #above initial ES
+    #                                          Library.ES >= input$Library.ES & #above library ES
+    #                                          Final.ES <= input$Final.ES & #below final ES
+    #                                          EnrichmentRatio >= input$Min.ER & #above min ER
+    #                                          #EnrichmentRatio < 0 & #below ER (for dropouts)
+    #                                          EnrichmentRatio <= input$Max.ER & #below max ER
+    #                                          pval <= input$pval & #below significant p value
+    #                                          qval <= input$qval] <- 'Filtered') #below significant q value
     
     
     CELL_LINE_1_genedatapoints$filteredstat <- as.factor(CELL_LINE_1_genedatapoints$filteredstat)
@@ -175,42 +185,76 @@ shinyServer(function(input, output, session) {
     
     #set rownames of CELL_LINE_1_filteredgenes
     rownames(CELL_LINE_1_filteredgenes) <- CELL_LINE_1_filteredgenes$Gene
-    
+
     #get the selected points from plotly graph
-    temp_df <<- as.data.frame(event_data("plotly_selected"))
+    #temp_df <<- as.data.frame(event_data("plotly_selected"))
+    temp_df <<- as.data.frame(event_data("plotly_selected", source = "select"))
+
+
     #if (is.null(display_list)) "Nothing selected yet" else display_list
-    
+
     #set rownames of temp_df to the key values, which contain the gene names we want
     rownames(temp_df) <- temp_df$key
     #drop all columns except the last two; need to keep at least 2 columns for merge function
     temp_df <- temp_df[,c(-1,-2,-3)]
-    
+
     #rename columns; last column is the Gene name we want to use to match up data with CELL_LINE_1_filteredgenes dataframe
     colnames(temp_df) <- c("0", "Gene")
-    
+
     #use merge function to pullout values of selected genes
     display_table <- merge(CELL_LINE_1_filteredgenes, temp_df, by="Gene", all.x=F)
-    
+
     #now drop the "0" column
-    display_table <- display_table[,-7]
-    
+    #display_table <- display_table[,-7]
+
     #if (is.null(temp_df)){
     #  m <- data.frame(matrix(0, ncol = 2, nrow = 1))
     #  m[1,1] <- "Select some data points"
     #  display_table <- m
     #}
-    
+
     #make gene names a URL to genecards
-    display_table$Gene <-  paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", display_table$Gene, "' target='_blank'>", display_table$Gene, "</a>")
-    
-    
-    #display table
-    DT::datatable(display_table, 
-                  options = list(order = list(list(6, 'asc')), 
-                                 aLengthMenu = c(10,25, 50, 100, 1000), 
+    #display_table$Gene <-  paste0("<a href='http://www.genecards.org/cgi-bin/carddisp.pl?gene=", display_table$Gene, "' target='_blank'>", display_table$Gene, "</a>")
+
+    DT::datatable(display_table,
+                  options = list(order = list(list(6, 'asc')),
+                                 aLengthMenu = c(10,25, 50, 100, 1000),
                                  iDisplayLength = 25), escape = FALSE)
     
   }) ##### END PLOTLY SELECT FUNCTION #####
+  
+  ##### START PLOTLY VERBATIM BRUSH SELECT #####
+  
+  output$plotly_select2 <- DT::renderDataTable({
+    CELL_LINE_1_genedatapoints <- as.data.frame(getdata())
+    
+    CELL_LINE_1_genedatapoints$filteredstat <- 'Unfiltered'
+    
+    # CELL_LINE_1_genedatapoints <- within(CELL_LINE_1_genedatapoints, filteredstat
+    #                                      [Initial.ES >= input$Initial.ES & #above initial ES
+    #                                          Library.ES >= input$Library.ES & #above library ES
+    #                                          Final.ES <= input$Final.ES & #below final ES
+    #                                          EnrichmentRatio >= input$Min.ER & #above min ER
+    #                                          #EnrichmentRatio < 0 & #below ER (for dropouts)
+    #                                          EnrichmentRatio <= input$Max.ER & #below max ER
+    #                                          pval <= input$pval & #below significant p value
+    #                                          qval <= input$qval] <- 'Filtered') #below significant q value
+    
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_genedatapoints, Initial.ES >= input$Initial.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Library.ES >= input$Library.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, Final.ES <= input$Final.ES)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, EnrichmentRatio >= input$Min.ER & EnrichmentRatio <= input$Max.ER)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, pval <= input$pval)
+    CELL_LINE_1_filteredgenes <- subset(CELL_LINE_1_filteredgenes, qval <= input$qval)
+    
+    CELL_LINE_1_genedatapoints$filteredstat <- 'Filtered'
+    
+    #brushedPoints(CELL_LINE_1_genedatapoints, input$filteredPlotlyColour_CELL_LINE_1_brush)
+  })
+  
+  ##### END PLOTLY VERBATIM BRUSH SELECT #####
+  
+  
   
   ##### START TABLE FOR CELL_LINE_1 #####
   #data table to show filtered genes from CELL_LINE_1

@@ -193,9 +193,10 @@ ui <- dashboardPage(
 
         # Plotly graph with polygon select
         tabPanel("2D Plot", id = "2DPlot", value= "2DPlotTab", jqui_resizable(plotlyOutput("filteredPlotlyColour_CELL_LINE_1", height = "800", width="100%")),
-          #verbatimTextOutput("plotly_select")
+          #verbatimTextOutput("plotly_select"),
           #downloadButton("downloadSelectedData", "Download Table"),
-          DT::dataTableOutput("plotly_select")
+          #DT::dataTableOutput("plotly_select"),
+          DT::dataTableOutput("plotly_select2")
         ),
         
         # Filtered table tab for CELL_LINE_1
